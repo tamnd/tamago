@@ -51,7 +51,7 @@ type Event struct {
 
 // Grow runs n improvement rounds on the agent and saves kept generations to
 // the garden. It returns one result per round.
-func Grow(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, rounds int, onEvent func(Event), onEval func(evals.Event)) ([]RoundResult, error) {
+func Grow(ctx context.Context, cl llm.Client, s *spec.AgentSpec, rounds int, onEvent func(Event), onEval func(evals.Event)) ([]RoundResult, error) {
 	emit := func(e Event) {
 		if onEvent != nil {
 			onEvent(e)
@@ -70,7 +70,7 @@ func Grow(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, rounds int, on
 			SystemPrompt string `json:"system_prompt"`
 			Notes        string `json:"notes"`
 		}
-		if err := cl.JSON(ctx, string(llm.DesignerModel), rewriterSystem, user, 16000, rewriteSchema(), &rw, nil); err != nil {
+		if err := cl.JSON(ctx, cl.DesignerModel(), rewriterSystem, user, 16000, rewriteSchema(), &rw, nil); err != nil {
 			return nil, fmt.Errorf("round %d rewrite: %w", round, err)
 		}
 		candidate := *s
@@ -109,7 +109,7 @@ func Grow(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, rounds int, on
 }
 
 // latestOrRun reuses the latest stored eval for this generation, or runs one.
-func latestOrRun(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, emit func(Event), onEval func(evals.Event)) (*evals.Report, error) {
+func latestOrRun(ctx context.Context, cl llm.Client, s *spec.AgentSpec, emit func(Event), onEval func(evals.Event)) (*evals.Report, error) {
 	if last, err := garden.LatestEval(s.Name); err == nil && last != nil && last.Generation == s.Meta.Generation {
 		rep := &evals.Report{Generation: last.Generation, When: last.When, Mean: last.Mean, Pass: last.Pass}
 		for _, f := range last.Fixtures {

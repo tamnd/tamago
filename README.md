@@ -75,6 +75,28 @@ export ANTHROPIC_API_KEY=...
 
 The designer, judge, and rewriter all run on the real API from the first command; there is no offline or mock mode.
 
+## Providers
+
+tamago speaks two wires: the Anthropic API and any OpenAI-compatible chat completions server.
+
+Selection order: `TAMAGO_PROVIDER` (`anthropic` or `openai`) wins, else `ANTHROPIC_API_KEY` picks Anthropic, else `OPENAI_API_KEY` picks OpenAI-compatible, else Anthropic.
+
+```
+export TAMAGO_PROVIDER=openai
+export OPENAI_BASE_URL=http://localhost:8080/v1   # default https://api.openai.com/v1
+export OPENAI_API_KEY=...
+```
+
+| variable | default | role |
+|---|---|---|
+| `TAMAGO_OPENAI_MODEL` | `gpt-5` | designer, judge, rewriter |
+| `TAMAGO_MODEL_FAST` | `gpt-5-mini` | tier `fast` |
+| `TAMAGO_MODEL_STANDARD` | `gpt-5` | tier `standard` |
+| `TAMAGO_MODEL_DEEP` | `gpt-5` | tier `deep` |
+
+Many OpenAI-compatible servers ignore `response_format`, so tamago never relies on it: JSON answers are requested by embedding the schema in the prompt, extracted tolerantly from chatty replies, and retried once with the parse error when the first attempt is off.
+Transient 429 and 5xx responses are retried with a short backoff before any output has streamed.
+
 ## Commands
 
 | command | what it does |
