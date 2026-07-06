@@ -61,7 +61,7 @@ type Event struct {
 }
 
 // Run executes the whole suite. onEvent gets progress; pass nil for silence.
-func Run(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, onEvent func(Event)) (*Report, error) {
+func Run(ctx context.Context, cl llm.Client, s *spec.AgentSpec, onEvent func(Event)) (*Report, error) {
 	emit := func(e Event) {
 		if onEvent != nil {
 			onEvent(e)
@@ -86,7 +86,7 @@ func Run(ctx context.Context, cl *llm.Client, s *spec.AgentSpec, onEvent func(Ev
 			Score  float64 `json:"score"`
 			Reason string  `json:"reason"`
 		}
-		if err := cl.JSON(ctx, string(llm.DesignerModel), judgeSystem, user, 2000, judgeSchema(), &verdict, nil); err != nil {
+		if err := cl.JSON(ctx, cl.DesignerModel(), judgeSystem, user, 2000, judgeSchema(), &verdict, nil); err != nil {
 			return nil, fmt.Errorf("fixture %d judge: %w", i+1, err)
 		}
 		sum += verdict.Score

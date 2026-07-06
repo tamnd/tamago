@@ -105,7 +105,7 @@ type Options struct {
 
 // Design asks the model for an agent spec and validates it, retrying once
 // with the validation error when the first attempt is off.
-func Design(ctx context.Context, cl *llm.Client, job string, opts Options, onDelta func(string)) (*spec.AgentSpec, error) {
+func Design(ctx context.Context, cl llm.Client, job string, opts Options, onDelta func(string)) (*spec.AgentSpec, error) {
 	var user strings.Builder
 	fmt.Fprintf(&user, "Tool catalog with risk floors:\n")
 	for _, n := range spec.CatalogNames() {
@@ -124,7 +124,7 @@ func Design(ctx context.Context, cl *llm.Client, job string, opts Options, onDel
 			prompt += fmt.Sprintf("\nYour previous design was rejected: %v\nFix that and return the corrected spec.", lastErr)
 		}
 		var d designJSON
-		if err := cl.JSON(ctx, string(llm.DesignerModel), systemPrompt, prompt, 16000, schema(), &d, onDelta); err != nil {
+		if err := cl.JSON(ctx, cl.DesignerModel(), systemPrompt, prompt, 16000, schema(), &d, onDelta); err != nil {
 			return nil, err
 		}
 		s := &spec.AgentSpec{
@@ -141,7 +141,7 @@ func Design(ctx context.Context, cl *llm.Client, job string, opts Options, onDel
 			Meta: spec.Meta{
 				Generation: 1,
 				Created:    time.Now().UTC().Format(time.RFC3339),
-				Model:      string(llm.DesignerModel),
+				Model:      cl.DesignerModel(),
 			},
 		}
 		if opts.Name != "" {
