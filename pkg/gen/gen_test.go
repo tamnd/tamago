@@ -100,3 +100,12 @@ func keys(m map[string]string) []string {
 	}
 	return out
 }
+
+func TestCronRefusesWriteAgents(t *testing.T) {
+	s := sample()
+	s.Risk = spec.RiskWrite
+	s.Tools = []string{"write_file"}
+	if _, err := (Cron{}).Generate(s); err == nil {
+		t.Fatal("cron harness for a write agent must be refused")
+	}
+}

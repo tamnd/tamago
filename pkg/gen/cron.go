@@ -24,12 +24,16 @@ func (Cron) Generate(s *spec.AgentSpec) (map[string]string, error) {
 	if cronExpr == "" {
 		return map[string]string{}, nil
 	}
+	if s.Risk != spec.RiskRead {
+		return nil, fmt.Errorf("refusing a cron harness for %s: risk %s agents act without a human watching; run it manually with --yes instead", s.Name, s.Risk)
+	}
 	var sh strings.Builder
 	sh.WriteString("#!/bin/sh\n")
 	sh.WriteString(header(s, "#"))
 	fmt.Fprintf(&sh, "# runs the agent through tamago on its schedule: %s\n", cronExpr)
+	sh.WriteString("# exit 2 means the agent escalated to a human, wire it to your alerting\n")
 	sh.WriteString("set -eu\n")
-	fmt.Fprintf(&sh, "tamago run %s \"scheduled run: do your job for the current period\"\n", s.Name)
+	fmt.Fprintf(&sh, "tamago run %s --quiet \"scheduled run: do your job for the current period\"\n", s.Name)
 
 	crontab := fmt.Sprintf("%s %s/run-%s.sh >> %s/%s.log 2>&1\n",
 		cronExpr, "$HOME/.tamago/cron", s.Name, "$HOME/.tamago/cron", s.Name)
