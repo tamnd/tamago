@@ -92,6 +92,9 @@ func (cl *openaiClient) StreamText(ctx context.Context, model, system, user stri
 			return "", err
 		}
 	}
+	if len(system)+len(user) > 16*1024 {
+		return "", fmt.Errorf("%w (the prompt is %d bytes; some servers reject large inputs, try a smaller one)", lastErr, len(system)+len(user))
+	}
 	return "", lastErr
 }
 
