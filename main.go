@@ -13,4 +13,5 @@ func main() {
 	if err := fang.Execute(context.Background(), cmd.Root()); err != nil {
 		os.Exit(1)
 	}
+	os.Exit(cmd.ExitCode)
 }

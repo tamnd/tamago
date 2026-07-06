@@ -37,6 +37,22 @@ func showCmd() *cobra.Command {
 					fmt.Fprintf(cmd.OutOrStdout(), "  gen %d  %s  mean %.1f  %s\n", r.Generation, r.When, r.Mean, verdict)
 				}
 			}
+			runs, err := garden.RunHistory(s.Name)
+			if err == nil && len(runs) > 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "\nrecent runs:")
+				start := max(0, len(runs)-5)
+				for _, r := range runs[start:] {
+					verdict := "ok"
+					switch {
+					case r.Error != "":
+						verdict = "error"
+					case r.Escalated:
+						verdict = "ESCALATED"
+					}
+					fmt.Fprintf(cmd.OutOrStdout(), "  %s  gen %d  %d steps  %.1fs  %s\n",
+						r.When, r.Generation, len(r.Steps), float64(r.DurationMS)/1000, verdict)
+				}
+			}
 			gens, err := garden.Generations(s.Name)
 			if err == nil && len(gens) > 1 {
 				fmt.Fprintf(cmd.OutOrStdout(), "\n%d generations on file\n", len(gens))
