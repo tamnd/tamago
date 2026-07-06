@@ -40,6 +40,20 @@ Approval: write and admin tools ask on the terminal before executing; `--yes` sk
 Eval suites run with write and admin tools denied, so they are always safe to run unattended.
 Tools that have no real backend on your machine (like `deploy`) fail with an honest not-configured error; nothing is ever faked.
 
+Chat-tuned servers sometimes answer in prose or claim the tools do not exist.
+The runner pushes back once, restating that the calls really execute, then accepts what comes; the format demand also rides at the end of every turn where such models actually look.
+
+## Unattended runs
+
+Every `tamago run` writes a record to `garden/NAME/runs/` with the input, each tool call and observation, the final output, and the duration; `tamago show` lists the last five next to the eval history.
+
+Flags for schedulers: `--quiet` drops streaming and step lines, `--out FILE` routes the final output to a file, `--timeout 5m` puts a deadline on the whole run.
+
+Exit codes: 0 ok, 1 error, 2 the agent escalated.
+Designed agents are taught to start their answer with `ESCALATE:` when their escalation rule triggers, and tamago turns that into exit 2 so cron can alert a human.
+
+The cron target only renders for read-risk agents; a write or admin agent scheduled with no human watching is a design smell, so `tamago gen` refuses and says to run it manually with `--yes` instead.
+
 ## TUI
 
 Bare `tamago` opens the dashboard: the garden on the left, the selected agent on the right, live streaming output for hatch, run, eval, and grow.
@@ -117,11 +131,11 @@ Transient 429 and 5xx responses are retried with a short backoff before any outp
 | `tamago` | open the TUI |
 | `tamago new "job"` | design and hatch an agent (`--name`, `--from parent`) |
 | `tamago gen NAME` | generate artifacts (`--target`, `--out`) |
-| `tamago run NAME ["input"]` | run once, input from arg or stdin |
+| `tamago run NAME ["input"]` | run once, input from arg or stdin (`--yes`, `--quiet`, `--out`, `--timeout`, `--max-steps`) |
 | `tamago eval NAME` | run the fixture suite, exit 1 below threshold 70 |
 | `tamago grow NAME` | improvement rounds (`--rounds`) |
 | `tamago ls` | list the garden |
-| `tamago show NAME` | spec, lineage, eval history |
+| `tamago show NAME` | spec, lineage, eval history, recent runs |
 
 ## License
 
