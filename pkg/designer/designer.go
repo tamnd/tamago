@@ -29,6 +29,8 @@ Rules:
 - tier: fast for mechanical transforms, standard for most jobs, deep for hard
   reasoning or high-stakes output.
 - escalation: one sentence saying when the agent must stop and hand off to a human.
+  The system_prompt must also tell the agent to begin its reply with "ESCALATE:"
+  whenever that rule triggers, so schedulers and humans can detect it.
 - evals: 3 to 5 fixtures. input is a realistic task the agent would receive,
   expect is the concrete criteria a judge can score the output against.
   Make the fixtures diverse: one happy path, one edge case, one that tests the

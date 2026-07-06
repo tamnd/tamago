@@ -140,3 +140,61 @@ func TestNoToolsStaysSingleShot(t *testing.T) {
 func writeTemp(path, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
+
+func TestEscalation(t *testing.T) {
+	if !Escalated("  ESCALATE: security incident") || Escalated("all fine") {
+		t.Fatal("Escalated prefix detection wrong")
+	}
+	cl := &fakeClient{replies: []string{`{"final": "found a leaked key", "escalate": true}`}}
+	out, err := RunWithOptions(context.Background(), cl, testSpec("read_file"), "audit", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !Escalated(out) {
+		t.Fatalf("escalate flag did not mark the answer: %q", out)
+	}
+}
+
+func TestProseReplyGetsOneNudge(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeTemp(dir+"/n.txt", "nudge worked"); err != nil {
+		t.Fatal(err)
+	}
+	cl := &fakeClient{replies: []string{
+		"I cannot access your filesystem from this chat.",
+		`{"tool": "read_file", "args": {"path": "` + dir + `/n.txt"}}`,
+		`{"final": "done"}`,
+	}}
+	out, err := RunWithOptions(context.Background(), cl, testSpec("read_file"), "read it", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "done" {
+		t.Fatalf("nudge did not recover the loop: %q", out)
+	}
+	if cl.calls != 3 {
+		t.Fatalf("expected 3 model calls, got %d", cl.calls)
+	}
+}
+
+func TestZeroCallFinalGetsPushback(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeTemp(dir+"/z.txt", "pushback worked"); err != nil {
+		t.Fatal(err)
+	}
+	cl := &fakeClient{replies: []string{
+		`{"final": "I do not have access to your files."}`,
+		`{"tool": "read_file", "args": {"path": "` + dir + `/z.txt"}}`,
+		`{"final": "the file says pushback worked"}`,
+	}}
+	out, err := RunWithOptions(context.Background(), cl, testSpec("read_file"), "read it", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != "the file says pushback worked" {
+		t.Fatalf("pushback did not recover the run: %q", out)
+	}
+	if !strings.Contains(cl.seen[1], "finished without using any tool") {
+		t.Fatalf("pushback text missing:\n%s", cl.seen[1])
+	}
+}
