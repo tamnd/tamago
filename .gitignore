@@ -1,0 +1,4 @@
+tamago
+*.test
+dist/
+.DS_Store
