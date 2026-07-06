@@ -37,6 +37,11 @@ func genCmd() *cobra.Command {
 			for _, t := range targets {
 				files, err := t.Generate(s)
 				if err != nil {
+					if target == "" {
+						// all-targets mode: one refusing target skips, the rest still render
+						fmt.Fprintf(cmd.ErrOrStderr(), "skipping target %s: %v\n", t.Name(), err)
+						continue
+					}
 					return fmt.Errorf("target %s: %w", t.Name(), err)
 				}
 				for rel, content := range files {
