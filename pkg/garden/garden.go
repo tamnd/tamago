@@ -6,6 +6,7 @@
 //	NAME/spec.yaml               live spec
 //	NAME/generations/gen-001.yaml ... frozen copies, one per generation
 //	NAME/evals/result-*.json     eval reports
+//	NAME/runs/run-*.json         run records for auditing
 package garden
 
 import (
@@ -174,6 +175,70 @@ func LatestEval(name string) (*EvalResult, error) {
 		return nil, err
 	}
 	return hist[len(hist)-1], nil
+}
+
+// RunStep is one tool call inside a stored run.
+type RunStep struct {
+	Tool        string `json:"tool"`
+	Args        string `json:"args"`
+	Observation string `json:"observation"`
+	Denied      bool   `json:"denied,omitempty"`
+}
+
+// RunRecord is one execution of an agent, kept so a human can audit what an
+// unattended run actually did.
+type RunRecord struct {
+	Generation int       `json:"generation"`
+	When       string    `json:"when"`
+	DurationMS int64     `json:"duration_ms"`
+	Input      string    `json:"input"`
+	Steps      []RunStep `json:"steps,omitempty"`
+	Output     string    `json:"output"`
+	Escalated  bool      `json:"escalated,omitempty"`
+	Error      string    `json:"error,omitempty"`
+}
+
+// SaveRun persists a run record for an agent.
+func SaveRun(name string, r *RunRecord) error {
+	dir, err := Dir(name)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "runs"), 0o755); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return err
+	}
+	stamp := strings.ReplaceAll(strings.ReplaceAll(r.When, ":", ""), "-", "")
+	return os.WriteFile(filepath.Join(dir, "runs", "run-"+stamp+".json"), b, 0o644)
+}
+
+// RunHistory returns stored run records, oldest first.
+func RunHistory(name string) ([]*RunRecord, error) {
+	dir, err := Dir(name)
+	if err != nil {
+		return nil, err
+	}
+	files, err := filepath.Glob(filepath.Join(dir, "runs", "run-*.json"))
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(files)
+	var out []*RunRecord
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		var r RunRecord
+		if err := json.Unmarshal(b, &r); err != nil {
+			continue
+		}
+		out = append(out, &r)
+	}
+	return out, nil
 }
 
 // Generations lists the frozen generation files for an agent.
