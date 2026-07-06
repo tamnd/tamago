@@ -27,6 +27,19 @@ tamago grow changelog-scribe     # eval, rewrite, keep the better generation
 
 `grow` reruns the suite, feeds the failing transcripts to a rewriter, saves the candidate as generation N+1, re-evals, and keeps it only when the mean score actually improves.
 
+## Tools at run time
+
+Agents whose spec declares tools actually use them: `tamago run` becomes an action loop where the model requests one tool call per turn as plain JSON, tamago executes it, and the observation goes back into the transcript.
+The protocol is plain text, so it works on any wire, including OpenAI-compatible servers with no native tool-call support.
+
+Three gates stand between the model and your machine.
+Design time: the risk gate refuses specs whose tools exceed their declared class.
+Run time: every call re-checks the allowlist and the tool's risk floor.
+Approval: write and admin tools ask on the terminal before executing; `--yes` skips the question for unattended runs, and a denial becomes an observation the agent can react to instead of a crash.
+
+Eval suites run with write and admin tools denied, so they are always safe to run unattended.
+Tools that have no real backend on your machine (like `deploy`) fail with an honest not-configured error; nothing is ever faked.
+
 ## TUI
 
 Bare `tamago` opens the dashboard: the garden on the left, the selected agent on the right, live streaming output for hatch, run, eval, and grow.
